@@ -5,7 +5,8 @@
   "description": "مصروفي: Arabic personal and business money notebook",
   "scripts": {
     "build": "node scripts/build.js",
-    "test": "node tests/parsing.test.js && node tests/import.test.js && node tests/receipt.test.js && node tests/e2e.test.js"
+    "test": "node tests/parsing.test.js && node tests/import.test.js && node tests/receipt.test.js && node tests/e2e.test.js",
+    "publish": "sh scripts/publish.sh"
   },
   "devDependencies": {
     "jsdom": "^24.1.3",

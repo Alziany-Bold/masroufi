@@ -48,3 +48,12 @@ How the app keeps data:
 - **Inside Claude** it uses the artifact's private per-user store (`data/users/<id>/`). Each notebook is a set of documents: `<book>.meta` for settings, funds, debts and monthly items, and one `<book>.m-YYYY-MM` document per month, where every entry is its own key. Two devices adding entries at the same time therefore never overwrite each other. A weekly backup goes to `<book>.meta/backups`.
 - **Outside Claude** (`dist/index.html`) everything lives in the browser's `localStorage`.
 - Libraries load from cdnjs only when needed: SheetJS for Excel, pdf.js for PDF import, html2canvas and jsPDF for PDF reports. Icons come from Lucide.
+
+## التطبيق على الجوال
+
+الرابط: https://alziany-bold.github.io/masroufi/
+
+- **iPhone:** افتح الرابط في Safari ← زر المشاركة ← «إضافة إلى الشاشة الرئيسية».
+- **Android:** افتح الرابط في Chrome ← ⋮ ← «تثبيت التطبيق».
+
+يعمل بلا إنترنت، وبياناتك تبقى على جهازك فقط. لنشر تحديث: `npm run publish`.
