@@ -1,6 +1,6 @@
 // Offline cache: the app itself is cached on install; fonts and libraries from CDNs are cached the
 // first time they load. The app page is fetched fresh when online so updates arrive, cache otherwise.
-const CACHE = 'masroufi-61f0053912';
+const CACHE = 'masroufi-fc0f144d70';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {
