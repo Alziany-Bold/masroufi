@@ -139,6 +139,28 @@ h2{font-size:16px;font-weight:600}
 .budget-meta{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:13px;color:var(--hero-muted)}
 .budget-meta strong{color:var(--hero-fg);font-weight:600}
 .budget-meta .over strong{color:var(--red)}
+.hero-link{background:none;border:0;color:var(--hero-muted);font:inherit;font-size:13px;display:inline-flex;gap:4px;align-items:center;padding:4px 6px;border-radius:8px}
+.hero-link svg.lucide{width:14px;height:14px}
+.hero-month{border-top:1px solid var(--hero-track);margin-top:4px;padding-top:10px}
+.hero-month .hero-top{margin-bottom:4px}
+.mrow{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--hero-muted);margin-bottom:10px}
+.mrow>span{display:flex;flex-direction:column;gap:2px}
+.mrow b{color:var(--hero-fg);font-size:16px;font-weight:600;white-space:nowrap;unicode-bidi:isolate}
+.mrow b.in{color:var(--green)} .mrow b.out{color:var(--red)}
+.bal-form{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.bal-form .eyebrow{font-size:16px;color:var(--hero-fg);font-weight:600}
+.bal-sub{font-size:13px;color:var(--hero-muted)}
+.bal-row{display:flex;gap:8px;align-items:center;margin-top:6px}
+.bal-row input{flex:1;min-width:0;background:var(--hero-track);border:0;color:var(--hero-fg);border-radius:12px;padding:10px 12px;font:inherit;font-size:22px;font-weight:700;direction:ltr;text-align:center}
+.bal-row .cur{color:var(--hero-muted)}
+.bal-row .btn{background:var(--hero-fg);color:var(--hero-bg)}
+.bal-row .ghost-hero{background:none;color:var(--hero-muted)}
+.more-row{display:block;margin:6px auto 0;padding:6px}
+.more-card summary{cursor:pointer;font-weight:600;list-style:none;display:flex;justify-content:space-between;align-items:center}
+.more-card summary::after{content:'+';color:var(--muted);font-size:20px}
+.more-card[open] summary::after{content:'−'}
+.more-card[open] summary{margin-bottom:12px}
+.more-card .card{border:0;padding:0;background:none;box-shadow:none}
 .hero-cta{margin-top:12px;font-size:13px;color:var(--hero-muted)}
 .hero-cta button{background:none;border:0;color:var(--hero-fg);text-decoration:underline;padding:0}
 
@@ -483,16 +505,20 @@ input[role=switch]:checked::after{inset-inline-start:21px}
     <section class="view" id="v-home">
       <div style="display:flex;flex-direction:column;gap:16px">
         <div class="date-label" id="today-label"></div>
+        <div class="hero" id="home-hero"></div>
         <div class="card quickbox">
           <form class="qrow" id="q-form" autocomplete="off">
-            <input id="q-input" placeholder="اكتب واضغط Enter: قهوة 15" enterkeyhint="done" aria-label="سجّل بسرعة: اكتب الشيء والمبلغ">
+            <input id="q-input" placeholder="سجّل بسرعة: قهوة 15" enterkeyhint="done" aria-label="سجّل بسرعة: اكتب الشيء والمبلغ">
             <button class="btn" type="submit" aria-label="سجّل"><i data-lucide="check"></i></button>
           </form>
           <div id="q-preview"></div>
           <div class="qtools">
+            <button class="chip" data-act="add"><i data-lucide="sliders-horizontal"></i>تسجيل بالتفاصيل</button>
+            <button class="chip" data-act="qmore" aria-expanded="false"><i data-lucide="ellipsis"></i>المزيد</button>
+          </div>
+          <div class="qtools" id="qtools" hidden>
             <button class="chip" data-act="receipt" id="rc-btn" hidden><i data-lucide="camera"></i>صوّر الإيصال</button>
             <button class="chip" data-act="sms"><i data-lucide="message-square-text"></i>الصق رسالة البنك</button>
-            <button class="chip" data-act="add"><i data-lucide="sliders-horizontal"></i>تسجيل بالتفاصيل</button>
             <button class="chip" data-act="import"><i data-lucide="file-up"></i>استيراد Excel / PDF</button>
           </div>
           <div id="favs-wrap"></div>
@@ -586,7 +612,7 @@ input[role=switch]:checked::after{inset-inline-start:21px}
         <div class="card" style="display:flex;flex-direction:column;gap:10px">
           <h2>المزامنة والنسخ الاحتياطي</h2>
           <p class="sync-line" id="sync-status"></p>
-          <p class="sub" style="margin:0">بياناتك محفوظة في حسابك على Claude، وما يشوفها أحد غيرك. افتح نفس الرابط من جوالك ولابتوبك وتلقى نفس الدفاتر. ونحفظ نسخة احتياطية من الدفتر تلقائيًا كل أسبوع.</p>
+          <p class="sub" style="margin:0"><span id="sync-blurb">بياناتك محفوظة في حسابك على Claude، وما يشوفها أحد غيرك. افتح نفس الرابط من جوالك ولابتوبك وتلقى نفس الدفاتر.</span> ونحفظ نسخة احتياطية من الدفتر تلقائيًا كل أسبوع.</p>
           <div id="bk-list"></div>
           <button class="btn sm ghost" data-act="bk-now" id="bk-now" style="align-self:flex-start"><i data-lucide="history"></i>احفظ نسخة الآن</button>
         </div>
@@ -1249,73 +1275,75 @@ function monthSwitch(){
 }
 
 /* ---------------- home ---------------- */
+// Money you have now: the amount you told us at a moment, plus everything recorded after that moment
+// (by when it was entered, so editing an older entry never shifts it). Savings put into a fund are set aside.
+const net=t=>t.type==='income'?t.amount:-t.amount;
+function balance(){
+  const o=S.settings.opening;if(!o)return null;
+  return S.tx.reduce((v,t)=>(t.at||0)>o.at?v+net(t):v,+o.amount||0);
+}
+function setBalance(v){S.settings.opening={amount:v,at:Date.now()};save();UI.balEdit=false;toast('تم تحديث رصيدك');render()}
 function renderHome(){
   const t=today(),biz=isBiz();
   $('#today-label').textContent=greg(t,{weekday:'long',day:'numeric',month:'long'});
-  const k=UI.month, cur=curP(), m=monthTotals(k), B=+S.settings.budget||0;
+  const k=UI.month, cur=curP(), m=monthTotals(k), B=+S.settings.budget||0, bal=balance();
   const dl=Math.round((parseISO(pEnd(k))-t)/864e5)+1;
-  let hero;
-  if(biz){
-    const ratio=m.inc?m.op/m.inc*100:0, cls=!m.inc&&m.op?'over':ratio>100?'over':ratio>=80?'warn':'';
-    hero=`<div class="hero-top"><span class="eyebrow">صافي الربح · ${periodName(k)}</span>${monthSwitch()}</div>
-      <div class="hero-amount"><span class="num ${m.profit<0?'loss':m.profit>0?'gain':''}">${m.profit<0?'−':''}${fmt(Math.abs(m.profit))}</span><span class="cur">${esc(S.settings.currency)}</span></div>
-      ${m.inc||m.op?`<div class="track ${cls}"><span style="width:${Math.min(100,m.inc?ratio:100)}%"></span></div>
-      <div class="budget-meta"><span>المبيعات <strong>${money(m.inc)}</strong></span><span>المصاريف <strong>${money(m.op)}</strong>${m.inc?` · ${fmt(Math.round(ratio))}٪ من المبيعات`:''}</span></div>`
-      :`<div class="hero-cta">سجّل مبيعاتك ومصاريفك ونحسب لك الربح أولًا بأول.</div>`}`;
+  const C=esc(S.settings.currency);
+  // 1) the hero: what you have now
+  let top;
+  if(bal===null||UI.balEdit){
+    top=`<form class="bal-form" id="bal-form"><label for="bal-in" class="eyebrow">${biz?'كم في صندوق العمل الآن؟':'كم معك من فلوس الآن؟'}</label>
+      <span class="bal-sub">اجمع النقد والحساب البنكي واكتب المجموع. بعدها نحدّثه مع كل دخل ومصروف تسجّله.</span>
+      <div class="bal-row"><input id="bal-in" inputmode="decimal" placeholder="0" autocomplete="off" value="${bal!==null?Math.round(bal*100)/100:''}"><span class="cur">${C}</span>
+      <button class="btn" type="submit">حفظ</button>${bal!==null?'<button class="btn ghost-hero" type="button" data-act="bal-cancel">إلغاء</button>':''}</div></form>`;
   }else{
-    let budget='';
-    if(B>0){
-      const pct=Math.min(100,m.exp/B*100), left=B-m.exp, c2=m.exp>B?'over':pct>=80?'warn':'';
-      let daily='';
-      if(k===cur){
-        const upE=upcoming().filter(r=>r.type==='expense').reduce((a,r)=>a+r.amount,0), free=left-upE;
-        daily=free>0?`<span><strong>${money(free/dl)}</strong> يوميًا لباقي ${daysWord(dl)}${upE?' بعد الفواتير القادمة':''}</span>`:(left>0?'<span>الفواتير القادمة تغطي الباقي</span>':'');
-      }
-      budget=`<div class="track ${c2}"><span style="width:${pct}%"></span></div>
-        <div class="budget-meta">${left>=0?`<span>باقي <strong>${money(left)}</strong> من ${money(B)}</span>`:`<span class="over">تجاوزت الميزانية بـ <strong>${money(-left)}</strong></span>`}${daily}</div>`;
-    }else budget=`<div class="hero-cta">ما عندك ميزانية شهرية بعد. <button data-view="settings">حدّدها الآن</button> وبنحسب لك كم تقدر تصرف كل يوم.</div>`;
-    hero=`<div class="hero-top"><span class="eyebrow">مصروف ${periodName(k)}</span>${monthSwitch()}</div>
-      <div class="hero-amount"><span class="num">${fmt(m.exp)}</span><span class="cur">${esc(S.settings.currency)}</span></div>${budget}`;
+    top=`<div class="hero-top"><span class="eyebrow">${biz?'في صندوق العمل الآن':'معك الآن'}</span><button class="hero-link" data-act="bal-edit"><i data-lucide="pencil"></i>عدّل</button></div>
+      <div class="hero-amount"><span class="num ${bal<0?'loss':''}">${bal<0?'−':''}${fmt(Math.abs(bal))}</span><span class="cur">${C}</span></div>`;
   }
-  const stats=biz?`
-      <div class="stat in"><span class="lbl"><i data-lucide="shopping-bag"></i>المبيعات</span><span class="val">${money(m.inc)}</span></div>
-      <div class="stat"><span class="lbl"><i data-lucide="receipt"></i>المصاريف</span><span class="val">${money(m.op)}</span></div>
-      <div class="stat save"><span class="lbl"><i data-lucide="percent"></i>هامش الربح</span><span class="val"><span class="num">${m.inc?fmt(Math.round(m.profit/m.inc*100)):'—'}</span>${m.inc?'٪':''}</span></div>`
-    :`
-      <div class="stat in"><span class="lbl"><i data-lucide="arrow-down-left"></i>الدخل</span><span class="val">${money(m.inc)}</span></div>
-      <div class="stat save"><span class="lbl"><i data-lucide="piggy-bank"></i>ادّخرت</span><span class="val">${money(m.sav)}</span></div>
-      <div class="stat khair"><span class="lbl"><i data-lucide="hand-heart"></i>صدقة وزكاة</span><span class="val">${money(m.khair)}</span></div>`;
-  const st=streak();
-  const streakTxt=st.n>0?(st.today?`سجّلت <b>${daysWord(st.n)}</b> متتالية. استمر!`:`سلسلتك <b>${daysWord(st.n)}</b>. سجّل شيئًا اليوم لتحافظ عليها.`):'سجّل أول عملية اليوم وابدأ سلسلة جديدة.';
-  // categories, with this month's limit where one is set
+  // 2) this month in one line
+  const mline=biz
+    ?`<div class="mrow"><span>المبيعات<b class="in">${money(m.inc)}</b></span><span>المصاريف<b>${money(m.op)}</b></span><span>صافي الربح<b class="${m.profit<0?'out':'in'}">${m.profit<0?'−':''}${money(Math.abs(m.profit))}</b></span></div>`
+    :`<div class="mrow"><span>دخل<b class="in">+${money(m.inc)}</b></span><span>مصروف<b>−${money(m.exp)}</b></span>${m.sav?`<span>ادّخار<b>${money(m.sav)}</b></span>`:''}</div>`;
+  let budget='';
+  if(!biz&&B>0){
+    const pct=Math.min(100,m.exp/B*100), left=B-m.exp, c2=m.exp>B?'over':pct>=80?'warn':'';
+    let daily='';
+    if(k===cur){
+      const upE=upcoming().filter(r=>r.type==='expense').reduce((a,r)=>a+r.amount,0), free=left-upE;
+      daily=free>0?`<span><strong>${money(free/dl)}</strong> يوميًا</span>`:'';
+    }
+    budget=`<div class="track ${c2}"><span style="width:${pct}%"></span></div>
+      <div class="budget-meta">${left>=0?`<span>باقي من الميزانية <strong>${money(left)}</strong></span>`:`<span class="over">تجاوزت الميزانية بـ <strong>${money(-left)}</strong></span>`}${daily}</div>`;
+  }
+  const hero=`${top}<div class="hero-month"><div class="hero-top"><span class="eyebrow">${periodName(k)}</span>${monthSwitch()}</div>${mline}${budget}</div>`;
+  // 3) where the money went: the top four, the rest on request
   const L=S.limits||{};
   const keys=[...new Set([...Object.keys(m.byCat),...Object.keys(L).filter(c=>+L[c]>0&&CATS[c]&&k===cur)])];
   keys.sort((a,b)=>(m.byCat[b]||0)-(m.byCat[a]||0));
   const max=Math.max(1,...keys.map(c=>m.byCat[c]||0));
-  const catHtml=keys.length?keys.map(c=>{
-    const C=CATS[c]||CATS.other, v=m.byCat[c]||0, lim=+L[c]||0;
+  const shown=UI.catsAll?keys:keys.filter((c,i)=>i<4||+L[c]>0);
+  const catHtml=keys.length?shown.map(c=>{
+    const Cc=CATS[c]||CATS.other, v=m.byCat[c]||0, lim=+L[c]||0;
     const pct=lim?v/lim*100:0, lc=lim?(pct>100?'over':pct>=80?'warn':''):'';
     return `<button class="cat-row" data-act="limit" data-cat="${c}" title="${lim?'غيّر الحد':'ضع حدًا لهذا التصنيف'}">
-      <span class="tile ${C.khair?'khair':''}"><i data-lucide="${C.i}"></i></span>
-      <div style="min-width:0"><div class="name"><span>${C.n}</span><span class="${lc}">${lim?(pct>100?'تجاوزت الحد':`<span class="num">${fmt(Math.round(pct))}</span>٪ من الحد`):`<span class="num">${fmt(m.exp?v/m.exp*100:0,0)}</span>٪`}</span></div>
-        <div class="mini ${C.khair?'khair':''} ${lc}"><span style="width:${lim?Math.min(100,pct):v/max*100}%"></span></div></div>
+      <span class="tile ${Cc.khair?'khair':''}"><i data-lucide="${Cc.i}"></i></span>
+      <div style="min-width:0"><div class="name"><span>${Cc.n}</span><span class="${lc}">${lim?(pct>100?'تجاوزت الحد':`<span class="num">${fmt(Math.round(pct))}</span>٪ من الحد`):`<span class="num">${fmt(m.exp?v/m.exp*100:0,0)}</span>٪`}</span></div>
+        <div class="mini ${Cc.khair?'khair':''} ${lc}"><span style="width:${lim?Math.min(100,pct):v/max*100}%"></span></div></div>
       <span class="amt">${money(v)}${lim?`<span class="of"> / <span class="num">${fmt(lim)}</span></span>`:''}</span></button>`}).join('')
+      +(shown.length<keys.length||UI.catsAll&&keys.length>4?`<button class="link more-row" data-act="cats-all">${UI.catsAll?'أقل':`عرض الكل (${fmt(keys.length)})`}</button>`:'')
     :`<div class="empty">ما فيه مصاريف في ${periodName(k)}.</div>`;
-  const recent=sortTx(inMonth(k)).slice(0,6);
-  const sum=summaryCard(k);
+  const recent=sortTx(inMonth(k)).slice(0,5);
+  $('#home-hero').innerHTML=hero;
   $('#home-body').innerHTML=`
     <div style="display:flex;flex-direction:column;gap:14px">
-      <div class="hero">${hero}</div>
-      <div class="stats">${stats}</div>
-      ${sum}
       ${k===cur?upcomingCard():''}
-      ${k===cur?`<div class="streak"><i data-lucide="flame"></i><span>${streakTxt}</span></div>`:''}
-      <div class="home-grid">
-        <div class="card"><div class="section-head"><h2>${biz?'أين تذهب مصاريف العمل؟':'أين ذهب مصروفك؟'}</h2><button class="link" data-act="limit">الحدود</button></div><div class="cats">${catHtml}</div></div>
-        <div class="card"><div class="section-head"><h2>آخر ما سجّلته</h2><button class="link" data-view="log">السجل كاملًا</button></div>
-          <div class="tx-list">${recent.length?recent.map(t=>txRow(t,true)).join(''):`<div class="empty">لا شيء بعد. اكتب في الخانة فوق، مثل «${biz?'مبيعات 1200':'قهوة 15'}»، أو اضغط <b>+</b>.</div>`}</div></div>
-      </div>
+      <div class="card"><div class="section-head"><h2>آخر ما سجّلته</h2><button class="link" data-view="log">الكل</button></div>
+        <div class="tx-list">${recent.length?recent.map(t=>txRow(t,true)).join(''):`<div class="empty">لا شيء بعد. اكتب في الخانة فوق، مثل «${biz?'مبيعات 1200':'قهوة 15'}»، أو اضغط <b>+</b>.</div>`}</div></div>
+      <div class="card"><div class="section-head"><h2>${biz?'أين تذهب مصاريف العمل؟':'أين ذهب مصروفك؟'}</h2><button class="link" data-act="limit">الحدود</button></div><div class="cats">${catHtml}</div></div>
+      <details class="card more-card" ${UI.moreOpen?'open':''}><summary>ملخص الشهر والرسم البياني</summary>${summaryCard(k)}</details>
     </div>`;
+  const d=$('#home-body .more-card');if(d)d.addEventListener('toggle',()=>{UI.moreOpen=d.open});
+  if(bal===null||UI.balEdit){const i=$('#bal-in');if(i&&UI.balEdit)setTimeout(()=>i.focus(),30)}
 }
 
 /* summary in plain words + six-month chart */
@@ -2114,7 +2142,8 @@ const SYNC_TXT={local:['cloud-off','محفوظ على هذا الجهاز فقط
   full:['cloud-off','مساحة حسابك ممتلئة. صدّر نسخة Excel واحذف أشهرًا قديمة.']};
 function setSync(s){
   SYNC.status=s;const [ic,txt]=SYNC_TXT[s]||SYNC_TXT.local;
-  const b=$('#sync-btn');if(b){b.innerHTML=`<i data-lucide="${ic}"></i>`;b.title=txt;b.setAttribute('aria-label',txt);b.classList.toggle('bad',s==='error'||s==='full');b.classList.toggle('spinning',s==='saving'||s==='connecting')}
+  const b=$('#sync-btn');if(b)b.hidden=s==='local';if(b){b.innerHTML=`<i data-lucide="${ic}"></i>`;b.title=txt;b.setAttribute('aria-label',txt);b.classList.toggle('bad',s==='error'||s==='full');b.classList.toggle('spinning',s==='saving'||s==='connecting')}
+  const sb=$('#sync-blurb');if(sb&&s==='local')sb.textContent='بياناتك محفوظة على هذا الجهاز فقط، وما يشوفها أحد غيرك. صدّر نسخة Excel من وقت لآخر واحفظها في Google Drive.';
   const el=$('#sync-status');if(el){el.textContent=txt;el.className='sync-line '+s}
   icons();
 }
@@ -2123,7 +2152,7 @@ function setSync(s){
 function renderBookPill(){
   const b=curBook();
   $('#book-pill').innerHTML=`<i data-lucide="${b.type==='business'?'store':'user'}"></i><span>${esc(b.name)}</span><i data-lucide="chevrons-up-down"></i>`;
-  $('#q-input').placeholder=isBiz()?'اكتب واضغط Enter: مبيعات 1200 · بضاعة 800':'اكتب واضغط Enter: قهوة 15';
+  $('#q-input').placeholder=isBiz()?'سجّل بسرعة: مبيعات 1200':'سجّل بسرعة: قهوة 15';
   $('#khair-sub').textContent=isBiz()?'الاحتياطي والادخار، زكاة النشاط، وديون العملاء والموردين.':'الصدقة والزكاة، والادخار لهدف قادم، وسجل الديون.';
   $('#s-budget-lbl').textContent=isBiz()?'حد المصاريف الشهري (اختياري)':'ميزانيتك الشهرية للمصاريف';
   $('#sample-card').hidden=isBiz();
@@ -2342,6 +2371,11 @@ function chartTip(e,show){
   const r=hit.getBoundingClientRect(),br=box.getBoundingClientRect();
   tip.style.left=(r.left+r.width/2-br.left)+'px';tip.hidden=false;
 }
+$('#home-hero').addEventListener('submit',e=>{
+  if(e.target.id!=='bal-form')return;e.preventDefault();
+  const v=parseNum($('#bal-in').value);if(!(v>=0)&&!(v<0)){$('#bal-in').focus();return}
+  setBalance(v);
+});
 $('#home-body').addEventListener('pointerover',e=>chartTip(e,true));
 $('#home-body').addEventListener('pointerout',e=>{if(!e.relatedTarget||!e.relatedTarget.closest||!e.relatedTarget.closest('#trend .hit'))chartTip(e,false)});
 $('#home-body').addEventListener('click',e=>{const hit=e.target.closest('#trend .hit');if(!hit)return;const d=CHART[+hit.dataset.ci];if(d&&d.k!==UI.month){UI.month=d.k;render()}});
@@ -2372,6 +2406,10 @@ document.addEventListener('click',e=>{
   const a=e.target.closest('[data-act]');if(!a)return;
   const id=a.dataset.id, act=a.dataset.act;
   if(act==='add')openTx({});
+  else if(act==='bal-edit'){UI.balEdit=true;render()}
+  else if(act==='bal-cancel'){UI.balEdit=false;render()}
+  else if(act==='cats-all'){UI.catsAll=!UI.catsAll;render()}
+  else if(act==='qmore'){const w=$('#qtools');const open=w.hidden;w.hidden=!open;a.setAttribute('aria-expanded',open)}
   else if(act==='theme')setTheme(isDark()?'light':'dark');
   else if(act==='sms')openSMS();
   else if(act==='books')openBooks();
